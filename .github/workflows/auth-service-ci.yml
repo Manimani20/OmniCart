@@ -1,18 +1,21 @@
-name: OmniCart CI
+name: Auth Service CI
 
 on:
   push:
     branches:
       - main
-      - develop
+    paths:
+      - 'auth-service/**'
+      - '.github/workflows/auth-service-ci.yml'
 
   pull_request:
     branches:
       - main
-      - develop
+    paths:
+      - 'auth-service/**'
 
 jobs:
-  auth-service:
+  test-and-build:
     runs-on: ubuntu-latest
 
     defaults:
@@ -26,8 +29,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
-          cache: "npm"
+          node-version: '22'
+          cache: npm
           cache-dependency-path: auth-service/package-lock.json
 
       - name: Install dependencies
@@ -36,8 +39,14 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-      - name: Run tests
+      - name: Run unit tests
         run: npm test
 
-      - name: Build Auth Service
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Build application
         run: npm run build
+
+      - name: Build Docker image
+        run: docker build -t omnicart-auth-service:ci .

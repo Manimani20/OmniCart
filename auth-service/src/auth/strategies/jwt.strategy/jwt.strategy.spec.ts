@@ -11,14 +11,15 @@ describe('JwtStrategy', () => {
     expect(configService.get).toHaveBeenCalledWith('JWT_ACCESS_SECRET');
   });
 
-  it('maps JWT claims to the authenticated request user', async () => {
+  it('maps JWT claims to the authenticated request user', () => {
     const configService = {
       get: jest.fn().mockReturnValue('access-secret'),
     } as unknown as ConfigService;
     const strategy = new JwtStrategy(configService);
 
-    await expect(
-      strategy.validate({ sub: 'user-1', role: 'CUSTOMER' }),
-    ).resolves.toEqual({ userId: 'user-1', role: 'CUSTOMER' });
+    expect(strategy.validate({ sub: 'user-1', role: 'CUSTOMER' })).toEqual({
+      userId: 'user-1',
+      role: 'CUSTOMER',
+    });
   });
 });

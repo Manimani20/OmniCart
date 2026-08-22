@@ -19,11 +19,11 @@ export class UsersService {
   }
 
   async findById(userId: string) {
-  return this.userModel
-    .findById(userId)
-    .select('-passwordHash -refreshTokenHash')
-    .lean();
-}
+    return this.userModel
+      .findById(userId)
+      .select('-passwordHash -refreshTokenHash')
+      .lean();
+  }
 
   async createUser(
     name: string,
@@ -57,8 +57,6 @@ export class UsersService {
   }
 
   async findByIdWithRefreshToken(userId: string) {
-  return this.userModel
-    .findById(userId)
-    .select('+refreshTokenHash');
-}
+    return this.userModel.findById(userId).select('+refreshTokenHash');
+  }
 }

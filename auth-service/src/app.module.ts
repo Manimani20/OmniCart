@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -21,7 +22,9 @@ import { AuthModule } from './auth/auth.module';
         }
 
         const parsedUri = new URL(configuredUri);
-        const [record] = await resolveSrv(`_mongodb._tcp.${parsedUri.hostname}`);
+        const [record] = await resolveSrv(
+          `_mongodb._tcp.${parsedUri.hostname}`,
+        );
 
         parsedUri.protocol = 'mongodb:';
         parsedUri.hostname = record.name;
@@ -32,6 +35,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     UsersModule,
     AuthModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

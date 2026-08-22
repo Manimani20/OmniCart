@@ -1,0 +1,23 @@
+replicaCount: 2
+
+image:
+  repository: omniartdev.azurecr.io/omnicart-auth-service
+  tag: v1
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+containerPort: 3001
+
+env:
+  PORT: "3001"
+  NODE_ENV: "production"
+  MONGODB_URI: "mongodb+srv://gxcmqhxshaw4oh:Omnicart1@docdb-cluster-20260819-1634.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false&maxIdleTimeMS=120000"
+  JWT_ACCESS_SECRET: "replace-with-a-strong-access-secret"
+  JWT_ACCESS_EXPIRATION: "15m"
+  JWT_REFRESH_SECRET: "replace-with-a-strong-refresh-secret"
+  JWT_REFRESH_EXPIRATION: "7d"
+
+secretName: auth-service-secret

@@ -9,21 +9,23 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
   const config = new DocumentBuilder()
-  .setTitle('OmniCart Auth Service')
-  .setDescription('Authentication and authorization APIs for OmniCart')
-  .setVersion('1.0')
-  .addBearerAuth()
-  .build();
+    .setTitle('OmniCart Auth Service')
+    .setDescription('Authentication and authorization APIs for OmniCart')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
 
-const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config);
 
-SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document);
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();
