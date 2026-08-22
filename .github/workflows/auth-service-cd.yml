@@ -1,0 +1,57 @@
+name: Auth Service CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'auth-service/**'
+      - 'helm/auth-service/**'
+      - '.github/workflows/auth-service-cd.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ vars.ACR_NAME }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ vars.ACR_LOGIN_SERVER }}/omnicart-auth-service:${{ github.sha }} \
+            ./auth-service
+
+      - name: Push Docker image
+        run: |
+          docker push \
+            ${{ vars.ACR_LOGIN_SERVER }}/omnicart-auth-service:${{ github.sha }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
+            --name ${{ vars.AKS_CLUSTER_NAME }} \
+            --overwrite-existing
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install auth-service ./helm/auth-service \
+            -f ./helm/auth-service/values-azure.yaml \
+            --set image.repository=${{ vars.ACR_LOGIN_SERVER }}/omnicart-auth-service \
+            --set image.tag=${{ github.sha }}
