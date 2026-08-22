@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { resolveSrv } from 'node:dns/promises';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from './users/users.module';
@@ -14,14 +13,25 @@ import { AuthModule } from './auth/auth.module';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI'),
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const configuredUri = configService.getOrThrow<string>('MONGODB_URI');
+
+        if (!configuredUri.startsWith('mongodb+srv://')) {
+          return { uri: configuredUri };
+        }
+
+        const parsedUri = new URL(configuredUri);
+        const [record] = await resolveSrv(`_mongodb._tcp.${parsedUri.hostname}`);
+
+        parsedUri.protocol = 'mongodb:';
+        parsedUri.hostname = record.name;
+        parsedUri.port = String(record.port);
+
+        return { uri: parsedUri.toString() };
+      },
     }),
     UsersModule,
     AuthModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

@@ -18,9 +18,12 @@ export class UsersService {
       .exec();
   }
 
-  async findById(userId: string): Promise<UserDocument | null> {
-    return this.userModel.findById(userId).exec();
-  }
+  async findById(userId: string) {
+  return this.userModel
+    .findById(userId)
+    .select('-passwordHash -refreshTokenHash')
+    .lean();
+}
 
   async createUser(
     name: string,
@@ -52,4 +55,10 @@ export class UsersService {
       },
     });
   }
+
+  async findByIdWithRefreshToken(userId: string) {
+  return this.userModel
+    .findById(userId)
+    .select('+refreshTokenHash');
+}
 }

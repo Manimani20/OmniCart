@@ -1,98 +1,177 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# OmniCart Auth Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Authentication and authorization service for OmniCart, built with NestJS, MongoDB, JWT, Passport, and bcrypt.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- Customer registration with DTO validation and bcrypt password hashing
+- Login with short-lived access tokens
+- HTTP-only refresh-token cookies with token rotation
+- JWT-protected current-user and logout endpoints
+- Role guard and `@Roles()` decorator for authorization rules
+- Swagger API documentation
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Prerequisites
 
-## Project setup
+- Node.js 20 or newer
+- npm
+- A reachable MongoDB-compatible database
+
+## Setup
+
+From this directory:
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+Create a `.env` file in the project root. Use a MongoDB connection string and strong, different secrets for access and refresh tokens:
+
+```env
+MONGODB_URI=mongodb://localhost:27017/omnicart
+JWT_ACCESS_SECRET=replace-with-a-long-access-secret
+JWT_ACCESS_EXPIRATION=15m
+JWT_REFRESH_SECRET=replace-with-a-long-refresh-secret
+JWT_REFRESH_EXPIRATION=7d
+NODE_ENV=development
+PORT=3000
+```
+
+Never commit `.env` or real credentials. Keep secrets in your deployment environment or a secret manager.
+
+## Run
 
 ```bash
-# development
-$ npm run start
+# Start once
+npm run start
 
-# watch mode
-$ npm run start:dev
+# Start with file watching
+npm run start:dev
 
-# production mode
-$ npm run start:prod
+# Build and run the compiled application
+npm run build
+npm run start:prod
 ```
 
-## Run tests
+The service listens on `http://localhost:3000` by default. Set `PORT` to use another port.
+
+Swagger UI is available at:
+
+```text
+http://localhost:3000/api/docs
+```
+
+## API
+
+### Register
+
+`POST /auth/register`
+
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "Password@123"
+}
+```
+
+Passwords must be 8-100 characters and include uppercase, lowercase, numeric, and special characters. A successful request returns the created user without password data.
+
+### Login
+
+`POST /auth/login`
+
+```json
+{
+  "email": "jane@example.com",
+  "password": "Password@123"
+}
+```
+
+The response contains an `accessToken`. The service also sets an HTTP-only `refreshToken` cookie. Clients must retain that cookie for refresh and logout flows.
+
+### Refresh access token
+
+`POST /auth/refresh`
+
+Send the `refreshToken` cookie. A successful request returns a new access token and rotates the refresh-token cookie.
+
+### Get the current user
+
+`GET /auth/me`
+
+Send the access token as a bearer token:
+
+```http
+Authorization: Bearer <access-token>
+```
+
+### Logout
+
+`POST /auth/logout`
+
+Requires a bearer access token. The stored refresh-token hash is cleared and the refresh cookie is removed.
+
+### Roles
+
+Available user roles are `CUSTOMER`, `ADMIN`, and `SUPPORT_AGENT`. Use `@Roles(...)` together with `RolesGuard` on endpoints that require specific roles.
+
+## Testing
+
+Run unit tests:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm test
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Run unit tests in watch mode:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run test:watch
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Run end-to-end tests:
 
-## Resources
+```bash
+npm run test:e2e
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+Generate a coverage report:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+npm run test:cov
+```
 
-## Support
+Run linting and formatting checks:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+npm run lint
+npm run format
+```
 
-## Stay in touch
+The unit tests mock persistence. The auth e2e tests boot a Nest HTTP application and exercise validation, JWT/Passport guards, cookies, login, refresh, profile, and logout behavior without requiring a live MongoDB connection.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Project structure
 
-## License
+```text
+src/
+  auth/
+    decorators/       Role metadata decorator
+    dto/               Register and login validation DTOs
+    guards/            JWT and role guards
+    strategies/        Passport JWT strategy
+    auth.controller.ts Authentication routes
+    auth.service.ts    Authentication business logic
+  users/
+    schemas/           Mongoose user schema
+    users.service.ts   User persistence operations
+test/                  End-to-end tests
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Security notes
+
+- Access tokens are sent in the `Authorization` header.
+- Refresh tokens are stored in an HTTP-only cookie and only their bcrypt hashes are stored in MongoDB.
+- Refresh tokens are rotated after successful use.
+- In production, cookies are marked `Secure`; serve the service over HTTPS.
+- Use strong secrets and do not reuse the access-token secret for refresh tokens.

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: auth-service
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: auth-service
+
+  template:
+    metadata:
+      labels:
+        app: auth-service
+
+    spec:
+      containers:
+        - name: auth-service
+
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          ports:
+            - containerPort: {{ .Values.containerPort }}
+
+          env:
+            - name: PORT
+              value: {{ .Values.env.PORT | quote }}
+
+            - name: NODE_ENV
+              value: {{ .Values.env.NODE_ENV | quote }}
+
+            - name: MONGODB_URI
+              value: {{ .Values.env.MONGODB_URI | quote }}
+
+            - name: JWT_ACCESS_SECRET
+              value: {{ .Values.env.JWT_ACCESS_SECRET | quote }}
+
+            - name: JWT_ACCESS_EXPIRATION
+              value: {{ .Values.env.JWT_ACCESS_EXPIRATION | quote }}
+
+            - name: JWT_REFRESH_SECRET
+              value: {{ .Values.env.JWT_REFRESH_SECRET | quote }}
+
+            - name: JWT_REFRESH_EXPIRATION
+              value: {{ .Values.env.JWT_REFRESH_EXPIRATION | quote }}
