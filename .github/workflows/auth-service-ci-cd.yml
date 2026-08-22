@@ -1,4 +1,4 @@
-name: Auth Service CD
+name: Auth Service CI/CD
 
 on:
   push:
@@ -7,28 +7,81 @@ on:
     paths:
       - 'auth-service/**'
       - 'helm/auth-service/**'
-      - '.github/workflows/auth-service-cd.yml'
+      - '.github/workflows/auth-service-ci-cd.yml'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'auth-service/**'
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  deploy:
+  ci:
+    name: CI - Test and Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: auth-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: auth-service/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Build NestJS application
+        run: npm run build
+
+      - name: Build Docker image
+        run: docker build -t omnicart-auth-service:ci .
+
+
+  cd:
+    name: CD - Deploy to AKS
+
+    # CD waits for CI
+    needs: ci
+
+    # Do not deploy pull requests.
+    # Deploy only when code is pushed to main.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Azure login
+      - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to ACR
+      - name: Login to Azure Container Registry
         run: az acr login --name ${{ vars.ACR_NAME }}
 
       - name: Build Docker image
@@ -37,7 +90,7 @@ jobs:
             -t ${{ vars.ACR_LOGIN_SERVER }}/omnicart-auth-service:${{ github.sha }} \
             ./auth-service
 
-      - name: Push Docker image
+      - name: Push Docker image to ACR
         run: |
           docker push \
             ${{ vars.ACR_LOGIN_SERVER }}/omnicart-auth-service:${{ github.sha }}
@@ -49,7 +102,7 @@ jobs:
             --name ${{ vars.AKS_CLUSTER_NAME }} \
             --overwrite-existing
 
-      - name: Deploy with Helm
+      - name: Deploy using Helm
         run: |
           helm upgrade --install auth-service ./helm/auth-service \
             -f ./helm/auth-service/values-azure.yaml \
