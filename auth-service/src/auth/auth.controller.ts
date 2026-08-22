@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   Req,
   Res,
@@ -108,6 +109,7 @@ export class AuthController {
     status: 401,
     description: 'Unauthorized',
   })
+  @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@Req() request: AuthenticatedRequest) {
     return this.authService.getMe(request.user.userId);
